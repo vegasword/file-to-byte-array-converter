@@ -3,58 +3,41 @@
 #include <string.h>
 
 int main(int argc, char** argv) {
-    FILE *fileptr;
-	char *name;
-    char *buffer;
-	int namelen;
-    long filelen;
-    size_t result;
-
-    for (int i=1; i < argc; i++)
-    {
-        fileptr = fopen(argv[i], "rb");
-        if (fileptr == NULL) {
-            printf("Error: Could not open file.\n");
-            return 1;
-        }
-		
-        fseek(fileptr, 0, SEEK_END);
-        filelen = ftell(fileptr);
-        rewind(fileptr);
-        buffer = (char *)malloc(filelen * sizeof(char));
-        if (buffer == NULL) {
-            printf("Error: Could not allocate memory.\n");
-            return 1;
-        }
-		memset(buffer, '\0', filelen);
-		
-        result = fread(buffer, sizeof(char), filelen, fileptr);
-        if (result != filelen) {
-            printf("Error: Could not read file.\n");
-            return 1;
-        }
-        fclose(fileptr);
-		
-		namelen = strcspn(argv[i], ".");
-		char *name = (char *)malloc(namelen * sizeof(char));
-		if (name == NULL) {
-            printf("Error: Could not allocate memory.\n");
-            return 1;
-        }
-		memset(name, '\0', namelen);
-		strncpy(name, argv[i], namelen);
-		
-        printf("unsigned char %s[] = {\n", name);
-        for (int i = 0; i < filelen; i++) {
-            printf("0x%02X%c", (unsigned char)buffer[i], i == filelen - 1 ? '\0' : ',');
-            if (i % 16 == 15) {
-                printf("\n");
-            }
-        }
-        printf("};\n");
-		free(name);
-        free(buffer);
+  for(int i = 1; i < argc; i++) {
+    FILE *inFile = fopen(argv[i], "rb");
+    if (!inFile) {
+      sprintf(stderr, "Error: Could not open %s.\n", argv[i]);
+      return 1;
     }
-
-    return 0;
+    fseek(inFile, 0, SEEK_END);
+    size_t fileSize = ftell(inFile);
+    rewind(inFile);
+    char *buffer = (char *)malloc(fileSize);
+    if (!buffer) {
+      sprintf(stderr, "Error: Could not allocate memory for %s.\n", argv[i]);
+      continue;
+    }
+    size_t result = fread(buffer, 1, fileSize, inFile);
+    if (result != fileSize) {
+      sprintf(stderr, "Error: Couldn't read entirely %s.\n", argv[i]);
+      continue;
+    }
+		char inFileName[256];
+		size_t inFileNameLen = strcspn(argv[i], ".");
+		strncpy(inFileName, argv[i], inFileNameLen);
+    inFileName[inFileNameLen] = '\0';
+		char outFileName[260];
+		strcpy(outFileName, inFileName);
+		strcat(outFileName, ".txt");
+    FILE *outFile = fopen(outFileName, "w");
+    fprintf(outFile, "unsigned char %s[] = {\n", inFileName);
+    for (int j = 0; j < fileSize; j++) {
+      fprintf(outFile, "0x%02X%c", (unsigned char)buffer[j], j == fileSize - 1 ? '\0' : ',');
+      if (j % 16 == 15) fprintf(outFile, "\n");
+    }
+    fprintf(outFile, "};\n");		
+    fclose(inFile);
+    fclose(outFile);
+  }
+  return 0;
 }
