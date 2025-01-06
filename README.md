@@ -1,5 +1,6 @@
-# File2ByteArray
-File to C byte array converter written in C
+# file2bytes
+
+File to C byte array converter
 
 ## Build
 
